@@ -430,9 +430,15 @@ public final class TreeIoUtils {
             writer.writeStartElement("tree");
             writer.writeAttribute("type", tree.getType().toString());
             if (tree.hasLabel()) writer.writeAttribute("label", tree.getLabel());
-            if (Tree.NO_POS != tree.getPos()) {
-                writer.writeAttribute("pos", Integer.toString(tree.getPos()));
-                writer.writeAttribute("length", Integer.toString(tree.getLength()));
+            writer.writeAttribute("pos", Integer.toString(tree.getPos()));
+            writer.writeAttribute("length", Integer.toString(tree.getLength()));
+            if (tree.getParent() != null)
+            {
+                writer.writeAttribute("parent_type", tree.getParent().getType().toString());
+                if (tree.getParent().getLabel() != "") 
+                    writer.writeAttribute("parent_label", tree.getParent().getLabel());
+                writer.writeAttribute("parent_pos", Integer.toString(tree.getParent().getPos()));
+                writer.writeAttribute("parent_length", Integer.toString(tree.getParent().getLength()));
             }
         }
 
@@ -445,9 +451,13 @@ public final class TreeIoUtils {
     static class XmlAnnotatedFormatter extends XmlFormatter {
         final SearchOther searchOther;
 
+        private MappingStore mappingStore;
+
         public XmlAnnotatedFormatter(Writer w, TreeContext ctx, boolean isSrc,
                                      MappingStore m) throws XMLStreamException {
             super(w, ctx);
+            
+            mappingStore = m;
 
             if (isSrc)
                 searchOther = (tree) -> m.isSrcMapped(tree) ? m.getDstForSrc(tree) : null;
@@ -464,10 +474,27 @@ public final class TreeIoUtils {
             super.startTree(tree);
             Tree o = searchOther.lookup(tree);
 
-            if (o != null) {
-                if (Tree.NO_POS != o.getPos()) {
-                    writer.writeAttribute("other_pos", Integer.toString(o.getPos()));
-                    writer.writeAttribute("other_length", Integer.toString(o.getLength()));
+            if (o != null) {                   
+                if (o.getLabel() != "") 
+                    writer.writeAttribute("other_label", o.getLabel());
+                writer.writeAttribute("other_pos", Integer.toString(o.getPos()));
+                writer.writeAttribute("other_length", Integer.toString(o.getLength()));
+                if (o.getParent() != null)
+                {
+                    writer.writeAttribute("other_parent_type", o.getParent().getType().toString());
+                    if (o.getParent().getLabel() != "") 
+                        writer.writeAttribute("other_parent_label", o.getParent().getLabel());
+                    writer.writeAttribute("other_parent_pos", Integer.toString(o.getParent().getPos()));
+                    writer.writeAttribute("other_parent_length", Integer.toString(o.getParent().getLength()));
+                }
+                if ((mappingStore.has(o.getParent(), tree.getParent())) 
+                        || (mappingStore.has(tree.getParent(), o.getParent())))
+                {
+                    writer.writeAttribute("moved", "False");
+                }
+                else
+                {
+                    writer.writeAttribute("moved", "True");
                 }
             }
         }
